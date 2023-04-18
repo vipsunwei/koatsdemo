@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  db:
+    restart: always
+    image: mysql:8
+    container_name: mysql8
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_DATABASE_FILE: /run/secrets/mysql_database
+      MYSQL_USER_FILE: /run/secrets/mysql_username
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_HOST_FILE: /run/secrets/mysql_host
+      MYSQL_PORT_FILE: /run/secrets/mysql_port
+    secrets:
+      - mysql_password
+      - mysql_database
+      - mysql_username
+      - mysql_host
+      - mysql_port
+    volumes:
+      - db_data:/var/lib/mysql:rw
+    networks:
+      - backend
+  server:
+    build:
+      context: ./server
+    ports:
+      - '9000:9000'
+    restart: always
+    depends_on:
+      - db
+    environment:
+      PORT: 9090
+      DB_HOST: ${DB_HOST}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD_FILE: /run/secrets/db_root_password
+      DB_NAME_FILE: /run/secrets/db_name
+    secrets:
+      - db_root_password
+      - db_name
+    networks:
+      - backend
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - '3000:80'
+    restart: always
+    networks:
+      - frontend
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  db_data:
+
+secrets:
+  db_root_password:
+    file: ./db_root_password.secret
+  db_name:
+    file: ./db_name.secret
